@@ -1,0 +1,13 @@
+.admin-books-page .admin-books-table-wrap {
+  margin-bottom: 1rem;
+}
+
+.admin-books-page .admin-books-table-wrap th,
+.admin-books-page .admin-books-table-wrap td {
+  white-space: nowrap;
+}
+
+.admin-books-page .admin-books-table-wrap td:nth-child(2) {
+  white-space: normal;
+  max-width: 14rem;
+}
