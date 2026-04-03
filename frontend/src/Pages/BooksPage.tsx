@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import BookList from "../Components/BookList";
 import CartSummary from "../Components/CartSummary";
 import CategoryFilter from "../Components/CategoryFilter";
@@ -9,6 +10,11 @@ function BooksPage() {
 
   return (
     <div className="container py-4">
+      <div className="d-flex justify-content-end mb-2">
+        <Link to="/adminbooks" className="btn btn-sm btn-outline-secondary">
+          Admin books
+        </Link>
+      </div>
       <WelcomeBand />
       <div className="row">
         <div className="col-md-3">

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Book } from "../types/Book";
 import { useCart } from "../context/CartContext";
-
-const apiBaseUrl = "http://localhost:4000";
+import { fetchBooks } from "../api/booksApi";
+import Pagination from "./Pagination";
 
 interface BookListProps {
   selectedCategories: string[];
@@ -16,30 +16,40 @@ function BookList({ selectedCategories }: BookListProps) {
   const [sortAsc, setSortAsc] = useState(true);
   const [notice, setNotice] = useState("");
   const [apiError, setApiError] = useState("");
+  const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
 
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const categoryParams = selectedCategories
-          .map((cat) => `categories=${encodeURIComponent(cat)}`)
-          .join("&");
+    let cancelled = false;
 
-        const response = await fetch(
-          `${apiBaseUrl}/books?pageSize=${pageSize}&pageNum=${pageNum}${
-            selectedCategories.length > 0 ? `&${categoryParams}` : ""
-          }`
-        );
-        const data = await response.json();
-        setBooks(data.books);
-        setTotalPages(Math.ceil(data.totalNumBooks / pageSize));
-        setApiError("");
+    const loadBooks = async () => {
+      setLoading(true);
+      setApiError("");
+      try {
+        const data = await fetchBooks(pageSize, pageNum, selectedCategories);
+        if (!cancelled) {
+          setBooks(data.books);
+          setTotalPages(Math.ceil(data.totalNumBooks / pageSize));
+        }
       } catch {
-        setApiError("Could not load books. Verify the backend API is running.");
+        if (!cancelled) {
+          setApiError(
+            "Could not load books. Verify the backend API is running."
+          );
+          setBooks([]);
+          setTotalPages(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchBooks();
+    loadBooks();
+    return () => {
+      cancelled = true;
+    };
   }, [pageSize, pageNum, selectedCategories]);
 
   useEffect(() => {
@@ -69,7 +79,10 @@ function BookList({ selectedCategories }: BookListProps) {
   return (
     <div>
       {notice && (
-        <div className="alert alert-success alert-dismissible fade show" role="alert">
+        <div
+          className="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
           {notice}
           <button
             type="button"
@@ -86,6 +99,12 @@ function BookList({ selectedCategories }: BookListProps) {
         </div>
       )}
 
+      {loading && (
+        <div className="alert alert-secondary" role="status">
+          Loading books…
+        </div>
+      )}
+
       <div className="d-flex justify-content-between align-items-center mb-3">
         <button
           className="btn btn-outline-primary"
@@ -93,72 +112,50 @@ function BookList({ selectedCategories }: BookListProps) {
         >
           Sort by Title ({sortAsc ? "Z-A" : "A-Z"})
         </button>
-        <select
-          className="form-select w-auto"
-          value={pageSize}
-          onChange={(e) => {
-            setPageSize(Number(e.target.value));
-            setPageNum(1);
-          }}
-        >
-          <option value="5">5 per page</option>
-          <option value="10">10 per page</option>
-          <option value="20">20 per page</option>
-        </select>
       </div>
 
-      {sortedBooks.map((b) => (
-        <div className="card mb-3" key={b.bookId}>
-          <div className="card-body">
-            <h4 className="card-title">{b.title}</h4>
-            <ul className="list-unstyled mb-3">
-              <li>
-                <strong>Author:</strong> {b.author}
-              </li>
-              <li>
-                <strong>Publisher:</strong> {b.publisher}
-              </li>
-              <li>
-                <strong>ISBN:</strong> {b.isbn}
-              </li>
-              <li>
-                <strong>Category:</strong> {b.category}
-              </li>
-              <li>
-                <strong>Pages:</strong> {b.pageCount}
-              </li>
-              <li>
-                <strong>Price:</strong> ${b.price.toFixed(2)}
-              </li>
-            </ul>
-            <button className="btn btn-success" onClick={() => handleAddToCart(b)}>
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      ))}
-
-      <nav aria-label="Book list pages">
-        <ul className="pagination flex-wrap">
-          <li className={`page-item ${pageNum === 1 ? "disabled" : ""}`}>
-            <button className="page-link" onClick={() => setPageNum((p) => p - 1)}>
-              Previous
-            </button>
-          </li>
-          {[...Array(totalPages)].map((_, i) => (
-            <li key={i + 1} className={`page-item ${pageNum === i + 1 ? "active" : ""}`}>
-              <button className="page-link" onClick={() => setPageNum(i + 1)}>
-                {i + 1}
+      {!loading &&
+        sortedBooks.map((b) => (
+          <div className="card mb-3" key={b.bookId}>
+            <div className="card-body">
+              <h4 className="card-title">{b.title}</h4>
+              <ul className="list-unstyled mb-3">
+                <li>
+                  <strong>Author:</strong> {b.author}
+                </li>
+                <li>
+                  <strong>Publisher:</strong> {b.publisher}
+                </li>
+                <li>
+                  <strong>ISBN:</strong> {b.isbn}
+                </li>
+                <li>
+                  <strong>Category:</strong> {b.category}
+                </li>
+                <li>
+                  <strong>Pages:</strong> {b.pageCount}
+                </li>
+                <li>
+                  <strong>Price:</strong> ${b.price.toFixed(2)}
+                </li>
+              </ul>
+              <button
+                className="btn btn-success"
+                onClick={() => handleAddToCart(b)}
+              >
+                Add to Cart
               </button>
-            </li>
-          ))}
-          <li className={`page-item ${pageNum === totalPages || totalPages === 0 ? "disabled" : ""}`}>
-            <button className="page-link" onClick={() => setPageNum((p) => p + 1)}>
-              Next
-            </button>
-          </li>
-        </ul>
-      </nav>
+            </div>
+          </div>
+        ))}
+
+      <Pagination
+        currentPage={pageNum}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageChange={setPageNum}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

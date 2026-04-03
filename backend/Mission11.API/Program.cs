@@ -4,8 +4,9 @@ using Mission11.API.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var dbPath = Path.Combine(AppContext.BaseDirectory, "Bookstore.sqlite");
 builder.Services.AddDbContext<BookstoreContext>(options =>
-    options.UseSqlite("Data Source=../../Bookstore.sqlite"));
+    options.UseSqlite($"Data Source={dbPath}"));
 
 // Add services to the container.
 
@@ -13,15 +14,21 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddCors(); 
+builder.Services.AddCors();
 var app = builder.Build();
 
+var configuredOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+var defaultDevOrigins = new[]
+{
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+};
+var allowedOrigins = defaultDevOrigins.Concat(configuredOrigins).Distinct().ToArray();
+
 app.UseCors(x => x
-    .WithOrigins(
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173")
+    .WithOrigins(allowedOrigins)
     .AllowAnyMethod()
     .AllowAnyHeader());
 

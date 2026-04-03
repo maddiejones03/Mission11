@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
+import { fetchCategories } from "../api/booksApi";
 import "./CategoryFilter.css";
-
-const apiBaseUrl = "http://localhost:4000";
 
 interface CategoryFilterProps {
   selectedCategories: string[];
@@ -15,17 +14,16 @@ function CategoryFilter({
   const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const load = async () => {
       try {
-        const response = await fetch(`${apiBaseUrl}/books/categories`);
-        const data = await response.json();
+        const data = await fetchCategories();
         setCategories(data);
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
     };
 
-    fetchCategories();
+    load();
   }, []);
 
   const handleCheckboxChange = (targetValue: string) => {
