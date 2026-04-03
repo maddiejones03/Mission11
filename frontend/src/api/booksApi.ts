@@ -1,7 +1,7 @@
 import type { Book } from "../types/Book";
 
 export const API_URL =
-  import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+  "https://bookproject-f5d9g5bubgctbpg9.francecentral-01.azurewebsites.net";
 
 export interface FetchBooksResponse {
   books: Book[];
